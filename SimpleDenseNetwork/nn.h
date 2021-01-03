@@ -18,45 +18,7 @@ typedef struct layer {
 __global__ void vecxvec_kernel(const float* __restrict__ d_m, const float* __restrict__ d_x, float * __restrict__ d_p,
     const unsigned int nRows, const unsigned int nCols)
 {
-    const unsigned int t = blockDimx.x * blockIdx.x + threadIdx.x;
-
-    __shared__ float mds[TILE_SIZE];
-    __shared__ float xds[TILE_SIZE];
-
-    int bx = blockIdx.x; int by = blockIdx.y;
-    int tx = threadIdx.x; int ty = threadIdx.y;
-
-    //int Row = by * TILE_WIDTH + ty;
-    int tid = bx * TILE_WIDTH + tx;
-
-    float Pvalue = 0;
-
-    for (int ph = 0; ph < ceil(Width/(float)TILE_WIDTH); ++ph)
-    {
-        if((Row < Width) && (ph*TILE_WIDTH+tx) < Width)
-            mds[tx] = d_m[Row*Width + ph*TILE_WIDTH + tx];
-        if((ph*TILE_WIDTH+ty)<Width && Col<Width)
-            xds[tx] = d_n[(ph*TILE_WIDTH + ty)*Width + Col];
-        
-        Mds[ty][tx] = d_M[Row*Width + ph*TILE_WIDTH + tx];
-        Nds[ty][tx] = d_N[(ph*TILE_WIDTH + ty)*Width + Col];
-
-        __syncthreads();
-
-        for(int k = 0; k < TILE_WIDTH; ++k)
-        {
-            Pvalue += Mds[ty][k] * Nds[k][tx];
-        }
-        __syncthreads();
-    }
-    if ((Row<Width) && (Col<Width)) P[Row*Width+Col] = Pvalue;
-}
-}
-
-__global__ void matvec_kernel(const float* __restrict__ d_M, const float* __restrict__ d_x, float * __restrict__ d_p, 
-    const unsigned int nRows, const unsigned int nCols, bool ReLU)
-{
-    const unsigned int t = blockDimx.x * blockIdx.x + threadIdx.x;
+    const unsigned int tid = blockDimx.x * blockIdx.x + threadIdx.x;
     __shared__ float xds[TILE_SIZE];
     float pval = 0.0;
 
@@ -70,17 +32,46 @@ __global__ void matvec_kernel(const float* __restrict__ d_M, const float* __rest
     }
     __syncthreads();
 
+    if ((Row<Width) && (Col<Width)) p[tid] = Pvalue;
+
     #pragma unroll
     for(unsigned int e = 0; e < TILE_SIZE; e++)
     {
-        pval += d_M[t + (e + TILE_SIZE *m) * nRows] * xds[e];
+        pval += d_m[t + (e + TILE_SIZE *m) * nRows] * xds[e];
     }
+    
+    if ((Row<Width) && (Col<Width)) P[Row*Width+Col] = Pvalue;
+}
 
+
+__global__ void matvec_kernel(const float* __restrict__ d_M, const float* __restrict__ d_x, float * __restrict__ d_p, 
+    const unsigned int nRows, const unsigned int nCols, bool ReLU)
+{
+    const unsigned int tid = blockDimx.x * blockIdx.x + threadIdx.x;
+    __shared__ float xds[TILE_SIZE];
+    float pval = 0.0;
+
+    #pragma unroll
+    for(unsigned int m = 0; m < ((nCols + TILE_SIZE -1)/TILE_SIZE); m++)
+    {
+        if((m * TILE_SIZE + threadIdx.x) < nCols)
+        {
+            xds[threadIdx.x] = d_x[threadIdx.x + m * TILE_SIZE];
+        } else xds[threadIdx.x] = 0.f;
+    
+        __syncthreads();
+
+        #pragma unroll
+        for(unsigned int e = 0; e < TILE_SIZE; e++)
+        {
+            pval += d_M[tid + (e + TILE_SIZE *m) * nRows] * xds[e];
+        }
+    }
     if(ReLU)
     {
-        if(t<nRows && pval > 0) d_p[tid] = pval;
+        if(t < nRows && pval > 0) d_p[tid] = pval;
     } else{
-        if(t<nRows) d_p[tid] = pval;
+        if(t < nRows) d_p[tid] = pval;
     }
 }
 
@@ -133,4 +124,18 @@ float MSE(float yhat, float y)
 {
     float mse = (y - yhat)**2;
     return mse;
+}
+
+float * makeWeights(int rows, int cols)
+{
+    float x[rows*cols];
+    srand(time(NULL));
+    for(int i = 0; i < rows; i++)
+    {
+        for(int j = 0; j < cols; j++)
+        {
+            x[i*rows+j] = (((float)rand()/(float)(RAND_MAX)));
+        }
+    }
+    return x;
 }
