@@ -20,7 +20,6 @@ typedef struct layer {
 } layer;
 
 void createLayers(layer *hiddenLayers[], char *argv[])
-void makeWeights(int rows, int cols, float *x)
 
 int X[ ] = {1,0,1,
     0,1,1,
@@ -37,28 +36,10 @@ int main( int argc, char *argv[])
 void createLayers(layer *hiddenLayers[], char *argv[])
 {
     for(int i = 0; i < atoi(argv[1]); i++)
-    {
-        if(i == 0)
-        {
-            layer[i].input = COLS;
-            layer[i].output = (atoi(argv[1]>i)) ? atoi(argv[i+2]) : OUT;
-            makeWeights(layer[i].input, layer[i].output, layer[i].weights);
-        } else{
-            layer[i].input = layer[i-1].output
-            layer[i].output = (atoi(argv[1]>i)) ? atoi(argv[i+2]) : OUT;
-            makeWeights(layer[i].input, layer[i].output, layer[i].weights);
-        }
-    }
-}
-
-void makeWeights(int rows, int cols, float *x)
-{
-    srand(time(NULL));
-    for(int i = 0; i < rows; i++)
-    {
-        for(int j = 0; j < cols; j++)
-        {
-            x[i*rows+j] = (((float)rand()/(float)(RAND_MAX)));
+            layer[i].input = {
+                .input = (i==0)COLS:layer[i-1].output, 
+                .output =  (atoi(argv[1]!=i+1)) ? atoi(argv[i+2]) : OUT,
+                .weights = makeWeights(layer[i].input, layer[i].output)}
         }
     }
 }
