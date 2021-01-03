@@ -1,12 +1,4 @@
 #define TILE_SIZE 32
-
-typedef struct layer {
-    float *weights;
-    float *neurons;
-    int input;
-    int output;
-} layer;
-
 #define CHECK_ERROR(call) { \
 	cudaError_t err = call; \
 	if (err != cudaSuccess) { \
