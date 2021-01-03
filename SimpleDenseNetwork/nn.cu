@@ -12,15 +12,6 @@
 #define COLS 3
 #define OUT 1
 
-typedef struct layer {
-    float *weights;
-    float *neurons;
-    int input;
-    int output;
-} layer;
-
-void createLayers(layer *hiddenLayers[], char *argv[])
-
 int X[ ] = {1,0,1,
     0,1,1,
     0,0,1,
@@ -31,15 +22,4 @@ int main( int argc, char *argv[])
 {
     layer *hiddenLayers[atoi(argv[1])];
     createLayers(*hiddenLayers, argv[]);
-}
-
-void createLayers(layer *hiddenLayers[], char *argv[])
-{
-    for(int i = 0; i < atoi(argv[1]); i++)
-            layer[i].input = {
-                .input = (i==0)COLS:layer[i-1].output, 
-                .output =  (atoi(argv[1]!=i+1)) ? atoi(argv[i+2]) : OUT,
-                .weights = makeWeights(layer[i].input, layer[i].output)}
-        }
-    }
 }
