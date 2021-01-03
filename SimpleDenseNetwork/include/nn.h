@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 float MSE(float yhat, float y)
 {
     float mse = (y - yhat)**2;
