@@ -3,8 +3,8 @@
 #include <time.h>
 #include <math.h>
 
-#include "include/nnKernel.cuh"
-#include "include/nn.h"
+#include "../include/nnKernel.cuh"
+#include "../include/nn.h"
 
 #define ALPHA .1
 #define ITERATIONS 150

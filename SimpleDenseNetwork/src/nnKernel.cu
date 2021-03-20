@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 
-#include "../include/cudaKernel.cu"
+#include "../include/nnKernel.cuh"
 
 #define TILE_SIZE 32
 #define CHECK_ERROR(call) { \
