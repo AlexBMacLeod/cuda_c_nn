@@ -2,6 +2,8 @@
 
 float MSE(float yhat, float y);
 
-float * makeWeights(int rows, int cols);
+void makeWeights(int rows, int cols, float *x);
 
 void printNetwork(layer *hiddenLayers[], char *argv[]);
+
+

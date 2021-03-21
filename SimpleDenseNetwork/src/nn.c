@@ -10,9 +10,8 @@ float MSE(float yhat, float y)
     return mse;
 }
 
-float * makeWeights(int rows, int cols)
+void makeWeights(int rows, int cols, float *x)
 {
-    float x[rows*cols];
     srand(time(NULL));
     for(int i = 0; i < rows; i++)
     {
@@ -21,7 +20,6 @@ float * makeWeights(int rows, int cols)
             x[i*rows+j] = (((float)rand()/(float)(RAND_MAX)));
         }
     }
-    return x;
 }
 
 void printNetwork(layer *hiddenLayers[], char *argv[])

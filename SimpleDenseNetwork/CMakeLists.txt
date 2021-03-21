@@ -31,7 +31,7 @@
 
     set_source_files_properties(${nn_source} PROPERTIES LANGUAGE ${LINEAR_LANGUAGE})
 
-    add_library(nn STATIC ${nn_source} src/nn.c)
+    add_library(nn STATIC ${nn_source} src/nn.c src/Linear.c include/Linear.h src/activation_functions.cu include/activation_functions.cuh src/cuda_activations.cu src/cuda_activations.cuh)
 
 
     # Request that particles be built with -std=c++11

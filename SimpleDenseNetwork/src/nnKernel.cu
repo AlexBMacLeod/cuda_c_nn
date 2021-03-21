@@ -68,7 +68,8 @@ __global__ void matvec_kernel(const float* __restrict__ d_M, const float* __rest
     if(ReLU)
     {
         if(t < nRows && pval > 0) d_p[tid] = pval;
-    } else{
+    }
+    else{
         if(t < nRows) d_p[tid] = pval;
     }
 }
