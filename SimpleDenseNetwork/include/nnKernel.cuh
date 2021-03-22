@@ -6,5 +6,9 @@ __global__ void vecxvec_kernel(const float* __restrict__ d_m, const float* __res
                                const unsigned int nRows, const unsigned int nCols);
 
 __global__ void matvec_kernel(const float* __restrict__ d_M, const float* __restrict__ d_x, float * __restrict__ d_p,
-                              const unsigned int nRows, const unsigned int nCols, bool ReLU);
+                              const unsigned int nRows, const unsigned int nCols);
+
+__global__ void transpose_kernel(float*, float*, int, int);
+
+void matrixVector(struct linearLayer*, float*);
 #endif

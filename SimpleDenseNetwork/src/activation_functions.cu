@@ -50,9 +50,28 @@ void relu_func(struct linearLayer* layer)
 }
 
 
-void relu_deriv(struct linearLayer*);
+void relu_deriv(struct linearLayer*)
 {
+    float *d_Mout;
+    float *d_Min;
+    int size = layer->out *sizeof(float);
 
+
+    CHECK_ERROR(cudaMalloc((void**)&d_Mout, size));
+    CHECK_ERROR(cudaMalloc((void**)&d_Min, size));
+
+
+    cudaMemcpy(d_Min, layer->output, size, cudaMemcpyHostToDevice);
+
+    dim3 dimGrid(ceil( layer->out / 32.0), 1, 1);
+    dim3 dimBlock(32.0, 1, 1);
+
+
+    relu_kernel<<<dimGrid, dimBlock>>>(d_Mout, d_Min, layer->out);
+
+    cudaMemcpy(d_Mout, layer->output, size, cudaMemcpyDeviceToHost);
+    cudaFree(d_Mout);
+    cudaFree(d_Min);
 }
 
 __global__ void relu_kernel(float* __restrict__ d_out, const float* __restrict__ d_in,

@@ -1,7 +1,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
+#include <math.h>
 
+#include "Linear.h"
 #include "../include/nnKernel.cuh"
 
 #define TILE_SIZE 32
@@ -43,7 +45,7 @@ __global__ void vecxvec_kernel(const float* __restrict__ d_m, const float* __res
 
 
 __global__ void matvec_kernel(const float* __restrict__ d_M, const float* __restrict__ d_x, float * __restrict__ d_p, 
-    const unsigned int nRows, const unsigned int nCols, bool ReLU)
+    const unsigned int nRows, const unsigned int nCols)
 {
     const unsigned int tid = blockDimx.x * blockIdx.x + threadIdx.x;
     __shared__ float xds[TILE_SIZE];
@@ -65,13 +67,60 @@ __global__ void matvec_kernel(const float* __restrict__ d_M, const float* __rest
             pval += d_M[tid + (e + TILE_SIZE *m) * nRows] * xds[e];
         }
     }
-    if(ReLU)
+}
+
+__global__ void transpose_kernel(float *odata, float *idata, int width, int height)
+{
+    __shared__ float block[BLOCK_DIM][BLOCK_DIM+1];
+
+
+    unsigned int xIndex = blockIdx.x * BLOCK_DIM + threadIdx.x;
+    unsigned int yIndex = blockIdx.y * BLOCK_DIM + threadIdx.y;
+    if((xIndex < width) && (yIndex < height))
     {
-        if(t < nRows && pval > 0) d_p[tid] = pval;
+        unsigned int index_in = yIndex * width + xIndex;
+        block[threadIdx.y][threadIdx.x] = idata[index_in];
     }
-    else{
-        if(t < nRows) d_p[tid] = pval;
+
+    __syncthreads();
+
+    xIndex = blockIdx.y * BLOCK_DIM + threadIdx.x;
+    yIndex = blockIdx.x * BLOCK_DIM + threadIdx.y;
+    if((xIndex < height) && (yIndex < width))
+    {
+        unsigned int index_out = yIndex * height + xIndex;
+        odata[index_out] = block[threadIdx.x][threadIdx.y];
     }
+}
+
+void matrixVector(struct linearLayer* layer, float *input, float *output)
+{
+    float *d_Out;
+    float *d_Vec;
+    float *d_Matrix;
+    int sizeMatrix = layer->in * layer->out * sizeof(float);
+    int sizeInVec = layer->in * sizeof(float);
+    int sizeOutVec = layer->out * sizeof(float);
+
+    CHECK_ERROR(cudaMalloc((**void)&d_Matrix, sizeMatrix));
+    CHECK_ERROR(cudaMalloc((**void)&d_Vec, sizeInVec));
+    CHECK_ERROR(cudaMalloc((**void)&d_Out, sizeOutVec));
+
+    dim3 dimGrid(ceil(layer->in/32.0), ceil(layer->out/32.0), 1);
+    dim3 dimBlock(32.0, 32.0, 1);
+
+    matvec_kernel<<<dimGrid, dimBlock>>>(d_Matrix, d_Vec, d_Out, layer->in, layer->out);
+
+    cudaMemCpy(d_Out, output, sizeOutVec, cudaMemCpyDeviceToHost);
+
+    cudaFree(d_Out);
+    cudaFree(d_Vec);
+    cudaFree(d_Matrix);
+}
+
+void transpose(struct linearLayer* layer)
+{
+    (float *odata, float *idata, int width, int height)
 }
 
 void forwardPass(float *inputRow, layer hiddenLayers[],
@@ -85,6 +134,8 @@ void forwardPass(float *inputRow, layer hiddenLayers[],
 
     dim3 dimGrid(ceil(cols/32.0), ceil(rows/32.0), 1)
     dim3 dimBlock(32.0, 32.0, 1)
+
+    matvec_kernel<<<dimGrid, dimBlock>>>(d_Matrix, d_x, d_p, hiddenLayers[i].input, hiddenLayers[i].output)
 
     for(int i = 0; i < numHidden; i++)
     {
