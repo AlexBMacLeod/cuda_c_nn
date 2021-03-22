@@ -10,6 +10,8 @@ typedef struct activation{
     void (*deriv)(struct linearLayer*);
 };
 
+extern struct activation relu;
+
 void relu_func(struct linearLayer*);
 void relu_deriv(struct linearLayer*);
 
