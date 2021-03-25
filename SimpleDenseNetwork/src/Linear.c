@@ -52,23 +52,36 @@ float* forward(struct linearLayer* layer, float* input)
 
 def backward(self, front):
 if self.activation:
-delta = front*self._relu2deriv(self.out)
-out = delta.dot(self.weights.T)
+    delta = front*self._relu2deriv(self.out)
+    out = delta.dot(self.weights.T)
 else:
-delta = self.out - front
-out = delta.dot(self.weights.T)
+    delta = self.out - front
+    out = delta.dot(self.weights.T)
 self.weights -= alpha * self.input.T.dot(delta)
 return out
-float* backward(struct linearLayer* layer, float* front)
+void backward(struct linearLayer* layer, float* front)
 {
     float* delta;
     delta = malloc(sizeof(float)*layer->out);
 
     if(layer->actFunc != NULL)
     {
-        matrixVector(layer, front, delta);
+        relu_deriv(layer);
+        matrixVector( layer->output, front, delta, layer->in, layer->out)
+        realloc(front, sizeof(float)*layer->in);
+        float* transpose_weights;
+        transpose_weights = malloc(sizeof(float)*layer->out*layer->in);
+        transpose( layer->weights, transpose_weights, layer->in, layer->out);
+        matrixVector( delta, transpose_weights, front);
+        free(transpose_weights);
     } else{
         *delta = layer->output - *front;
+        float* transpose_weights;
+        transpose_weights = malloc(sizeof(float)*layer->out*layer->in);
+        transpose( layer->weights, transpose_weights, layer->in, layer->out);
+        matrixVector( delta, transpose_weights, front);
+        free(transpose_weights);
+
     }
 
 }

@@ -10,5 +10,5 @@ __global__ void matvec_kernel(const float* __restrict__ d_M, const float* __rest
 
 __global__ void transpose_kernel(float*, float*, int, int);
 
-void matrixVector(struct linearLayer*, float*);
+void matrixVector(float*, float*, float*, int, int);
 #endif

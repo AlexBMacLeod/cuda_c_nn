@@ -29,8 +29,7 @@
 
     set_source_files_properties(${nn_source} PROPERTIES LANGUAGE ${LINEAR_LANGUAGE})
 
-    add_library(nn STATIC ${nn_source} src/nn.c src/Linear.c include/Linear.h src/activation_functions.cu include/activation_functions.cuh)
-
+    add_library(nn STATIC ${nn_source} src/nn.c include/nn.h src/Linear.c include/Linear.h src/activation_functions.cu include/activation_functions.cuh)
 
     target_compile_features(nn PUBLIC c_std_11)
 

@@ -93,23 +93,26 @@ __global__ void transpose_kernel(float *odata, float *idata, int width, int heig
     }
 }
 
-void matrixVector(struct linearLayer* layer, float *input, float *output)
+void matrixVector(float* h_Matrix, float* h_Vec, float* h_Out, int in, int out)
 {
     float *d_Out;
     float *d_Vec;
     float *d_Matrix;
-    int sizeMatrix = layer->in * layer->out * sizeof(float);
-    int sizeInVec = layer->in * sizeof(float);
-    int sizeOutVec = layer->out * sizeof(float);
+    int sizeMatrix = in * out * sizeof(float);
+    int sizeInVec = in * sizeof(float);
+    int sizeOutVec = out * sizeof(float);
 
     CHECK_ERROR(cudaMalloc((**void)&d_Matrix, sizeMatrix));
     CHECK_ERROR(cudaMalloc((**void)&d_Vec, sizeInVec));
     CHECK_ERROR(cudaMalloc((**void)&d_Out, sizeOutVec));
 
-    dim3 dimGrid(ceil(layer->in/32.0), ceil(layer->out/32.0), 1);
+    cudaMemCpy(h_Matrix, d_Matrix, sizeMatrix, cudaMemCpyHostToDevice);
+    cudaMemCpy(h_Vec, d_Vec, sizeInVec, cudaMemCpyHostToDevice);
+
+    dim3 dimGrid(ceil(in/32.0), ceil(out/32.0), 1);
     dim3 dimBlock(32.0, 32.0, 1);
 
-    matvec_kernel<<<dimGrid, dimBlock>>>(d_Matrix, d_Vec, d_Out, layer->in, layer->out);
+    matvec_kernel<<<dimGrid, dimBlock>>>(d_Matrix, d_Vec, d_Out, in, out);
 
     cudaMemCpy(d_Out, output, sizeOutVec, cudaMemCpyDeviceToHost);
 
@@ -118,9 +121,25 @@ void matrixVector(struct linearLayer* layer, float *input, float *output)
     cudaFree(d_Matrix);
 }
 
-void transpose(struct linearLayer* layer)
+void transpose( float* h_inMatrix, float* h_outMatrix, int in, int out)
 {
-    (float *odata, float *idata, int width, int height)
+    float *d_inMatrix;
+    float *d_outMatrix;
+    int sizeMatrix = in * out * sizeof(float);
+
+    CHECK_ERROR(cudaMalloc((**void)&d_inMatrix, sizeMatrix));
+    CHECK_ERROR(cudaMalloc((**void)&d_outMatrix, sizeMatrix));
+
+    cudaMemCpy(h_inMatrix, d_inMatrix, sizeMatrix, cudaMemCpyHostToDevice);
+
+    dim3 dimGrid(ceil(cols/32.0), ceil(rows/32.0), 1);
+    dim3 dimBlock(32.0, 32.0, 1);
+    transpose_kernel<<<dimGrid, dimBlock>>>( d_outMatrix, d_inMatrix, in, out);
+
+    cudaMemCpy(d_outMatrix, d_inMatrix, sizeMatrix, cudaMemCpyHostToDevice);
+
+    cudaFree(d_inMatrix);
+    cudaFree(d_outMatrix);
 }
 
 void forwardPass(float *inputRow, layer hiddenLayers[],
@@ -132,10 +151,10 @@ void forwardPass(float *inputRow, layer hiddenLayers[],
     int sizeMatrix = rows * cols * sizeof(float);
     int sizeVec = cols * sizeof(float);
 
-    dim3 dimGrid(ceil(cols/32.0), ceil(rows/32.0), 1)
-    dim3 dimBlock(32.0, 32.0, 1)
+    dim3 dimGrid(ceil(cols/32.0), ceil(rows/32.0), 1);
+    dim3 dimBlock(32.0, 32.0, 1);
 
-    matvec_kernel<<<dimGrid, dimBlock>>>(d_Matrix, d_x, d_p, hiddenLayers[i].input, hiddenLayers[i].output)
+    matvec_kernel<<<dimGrid, dimBlock>>>(d_Matrix, d_x, d_p, hiddenLayers[i].input, hiddenLayers[i].output);
 
     for(int i = 0; i < numHidden; i++)
     {
@@ -153,7 +172,7 @@ void forwardPass(float *inputRow, layer hiddenLayers[],
             cudaMemCpy(inputRow, d_x, sizeIn, cudaMemCpyHostToDevice);
         } else cudaMemCpy(hiddenLayers[i-1].neurons, d_x, sizeIn, cudaMemCpyHostToDevice);
 
-        matvec_kernel<<<dimGrid, dimBlock>>>(d_M, d_x, d_p, hiddenLayers[i].input, hiddenLayers[i].output, true)
+        matvec_kernel<<<dimGrid, dimBlock>>>(d_M, d_x, d_p, hiddenLayers[i].input, hiddenLayers[i].output, true);
 
         if(i+1 == numHidden) {cudaMemCpy(d_p, yhat, sizeOut, cudaMemCpyDeviceToHost);
         } else cudaMemCpy(d_p, hiddenLayers[i].neurons, sizeOut, cudaMemCpyDeviceToHost);
