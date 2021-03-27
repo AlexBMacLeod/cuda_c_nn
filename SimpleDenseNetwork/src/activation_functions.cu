@@ -25,7 +25,7 @@ struct activation relu = {
         .deriv = relu_deriv
 };
 
-void relu_func(struct linearLayer* layer)
+void relu_func( linearLayer* layer)
 {
     float *d_Mout;
     float *d_Min;
@@ -50,7 +50,7 @@ void relu_func(struct linearLayer* layer)
 }
 
 
-void relu_deriv(struct linearLayer*)
+void relu_deriv( linearLayer*)
 {
     float *d_Mout;
     float *d_Min;

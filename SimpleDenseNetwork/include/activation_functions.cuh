@@ -8,7 +8,7 @@
 typedef struct activation{
     void (*func)(struct linearLayer*);
     void (*deriv)(struct linearLayer*);
-};
+}activation;
 
 extern struct activation relu;
 
