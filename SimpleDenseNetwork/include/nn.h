@@ -2,7 +2,7 @@
 #ifndef LINEAR_NN_H
 #define LINEAR_NN_H
 
-#include "layer.h"
+#include "tensor.h"
 
 float MSE(float yhat, float y);
 

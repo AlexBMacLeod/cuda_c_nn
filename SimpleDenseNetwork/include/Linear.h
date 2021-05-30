@@ -5,7 +5,7 @@
 #ifndef LINEAR_LINEAR_H
 #define LINEAR_LINEAR_H
 
-#include "layer.h"
+#include "tensor.h"
 
 
 
