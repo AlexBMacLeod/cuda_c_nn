@@ -1,6 +1,7 @@
 # Cuda C Neural Networks
 
-#Currenty under construction. I'd recommend checking out my neural network library written in C which is working.
+## Currenty under construction. 
+## I'd recommend checking out my neural network library written in C which is working.
 
 I have a couple of goals with this repository. The most obvious is implementing Neural Networks using CUDA C. There are a number of repositories
 that offer CUDA C++ implementations of Neural Networks but surprisingly few that offer C. I've never actually learned C++, so this will be in C!
