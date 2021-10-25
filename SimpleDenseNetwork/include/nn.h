@@ -1,14 +1,56 @@
+#ifndef _NN_H
+#define _NN_H
+#include <stdbool.h>
 
-#ifndef LINEAR_NN_H
-#define LINEAR_NN_H
+#include "linear.h"
+#include "input.h"
 
-#include "tensor.h"
+struct Node  {
+	struct Node* next;
+	struct Node* prev;
+	char layerType[20];
+	union{
+    	LinearLayer *layer;
+		inputLayer *input;
+	};
+};
 
-float MSE(float yhat, float y);
+typedef struct NeuralNet{
+	void (*add_linear_layer)(char[], int);
+	void (*add_convolutional_layer)(char *, int,  int,  int,  int,  bool);
+	void (*add_input)();
+	void (*forward_pass)(float*, float*);
+	void (*backward_pass)(float*);
+	void (*clean_up)();
+}NeuralNet;
 
-void makeWeights( Matrix*);
+extern struct Node* head; // global variable - pointer to head node.
 
-//void printNetwork(layer *hiddenLayers[], char *argv[]);
+//Creates a new Node and returns pointer to it. 
+struct Node* GetNewNode(char[], int, int, int);
+
+struct Node* GetInput(float, struct Shape);
+
+//Inserts a Node at head of doubly linked list
+void InsertAtHead(char[], int);
+
+//Inserts a node 
+void InsertC2DAtHead(char activation[], int, int, int, int, bool);
+
+void InsertFirst(float, struct Shape);
+
+//Inserts a Node at tail of Doubly linked list
+void InsertAtTail(char[], int, int, int);
+
+NeuralNet createNetwork(float, int, int, int, int);
+
+void Forward(float*, float*);
+
+void Delete();
+
+void Backward(float*);
+
+int validation_run(float*, float*, int, int, NeuralNet);
 
 
-#endif
+#endif //_NN_H
