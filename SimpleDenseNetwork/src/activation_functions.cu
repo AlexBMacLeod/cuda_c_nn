@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 
-#include "Linear.h"
+#include "linear.h"
 #include "activation_functions.cuh"
 
 #define CHECK_ERROR(call) { \
@@ -20,10 +20,26 @@
 }
 
 
-struct activation relu = {
-        .func = relu_func,
-        .deriv = relu_deriv
-};
+void none(LinearLayer* layer)
+{
+    return;
+}
+
+void none2C(conv2DLayer* layer)
+{
+    return;
+}
+
+void relu(LinearLayer* layer)
+{
+    dim3 dimGrid(ceil( ceil( layer->out / 32.0), layer->batch_size / 32.0), 1);
+    dim3 dimBlock(32.0, 32.0, 1);
+
+
+    relu_kernel<<<dimGrid, dimBlock>>>(layer->output->data, layer->out, layer->batch_size);
+
+}
+
 
 void relu_func( linearLayer* layer)
 {
@@ -74,17 +90,15 @@ void relu_deriv( linearLayer*)
     cudaFree(d_Min);
 }
 
-__global__ void relu_kernel(float* __restrict__ d_out, const float* __restrict__ d_in,
+__global__ void relu_kernel(float* __restrict__ d,
                             const unsigned int nRows, const unsigned int nCols)
 {
     const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int Row = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (Col < nCols)
+    if (Col < nCols && Row < nRows)
     {
-        if(d_in[Col]>0){
-            d_out[Col] = d_in[Col];
-        }
-        else d_out[Col] = 0.0;
+        d[nRows*Col+Row] = fmaxf(d[nRows*Col+Row], 0);
     }
 }
 
@@ -101,4 +115,23 @@ __global__ void relu_deriv_kernel(int* __restrict__ d_out, const int* __restrict
             d_out[nRows*Col+Row] = 1;
         }
         else d_out[nRows*Col+Row] = 0;
+    }
+
+__global__ void tanh_kernel(float* __restrict__ d,
+                            const unsigned int nRows, const unsigned int nCols)
+{
+    const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int Row = blockIdx.y * blockDim.y + threadIdx.y;
+    if (Col < nCols && Row < nRows)
+        d[nRows*Col+Row] = tanhf(d[nRows*Col+Row]);
+}
+
+__global__ void tanh_deriv_kernel(float* __restrict__ output, float* __restrict__ deriv,
+                            const unsigned int nRows, const unsigned int nCols)
+
+    {
+        const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
+        const unsigned int Row = blockIdx.y * blockDim.y + threadIdx.y;
+        if (Col < nCols && Row < nRows)
+            deriv[nRows*Col+Row] = 1 - powf(input[nRows*Col+Row]);
     }
