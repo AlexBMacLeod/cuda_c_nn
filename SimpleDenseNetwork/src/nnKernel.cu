@@ -3,16 +3,72 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "Linear.h"
+#include "linear.h"
 #include "../include/nnKernel.cuh"
 
 #define TILE_SIZE 32
+
 #define CHECK_ERROR(call) { \
 	cudaError_t err = call; \
 	if (err != cudaSuccess) { \
 		printf("%s in %s at line %d\n", cudaGetErrorString(err), __FILE__, __LINE__); \
 		exit(err); \
 	} \
+}
+
+__global__
+void matrixMult(const float * __restrict__ M, const float __restrict__ *N, float *P, int j, int k, int l)
+{
+    __shared__ float Mds[TILE_SIZE][TILE_SIZE];
+    __shared__ float NdsOne[TILE_SIZE][TILE_SIZE];
+    __shared__ float NdsTwo[TILE_SIZE][TILE_SIZE];
+
+
+    float PvalOne = 0.0;
+    float PvalTwo = 0.0;
+
+
+    int bx = blockIdx.x * 2;    int by = blockIdx.y;
+    int tx= threadIdx.x;    int ty = threadIdx.y;
+
+    int Col = bx * blockDim.x + tx;
+    int Row = by * blockDim.y + ty;
+
+
+    #pragma unroll
+    for(int ph=0; ph<ceil(k/(float)TILE_SIZE); ph++)
+    {
+        Mds[ty][tx] = 0.0;
+        NdsOne[ty][tx] = 0.0;
+        NdsTwo[ty][tx] = 0.0;
+
+        __syncthreads();
+
+        if(Row < j && (ph * TILE_SIZE + ty) < k)
+            Mds[ty][tx] = M[row*k + TILE_SIZE * ph + tx];
+        if(Col < l && (ph * bx + tx) < k)
+            NdsOne[ty][tx] = N[(ty + ph * TILE_SIZE) * l) + Col];
+        if(Col + 1 < l && (ph * TILE_SIZE + tx) < k)
+            NdsTwo[ty][tx] = N[(ty + ph * TILE_SIZE) * l) + Col + TILE_WIDTH];
+
+
+        __syncthreads();
+
+        #pragma unroll
+        for(int k=0; k<TILE_SIZE; k++)
+        {
+            PvalOne += Mds[ty][k] * NdsOne[k][tx];
+            PvalTwo += Mds[ty][k] * NdsTwo[k][tx];
+
+        }
+        __syncthreads();
+    }
+
+    if(Row < j && Col < l)
+        P[Row * l + Col] = PvalOne;
+    if(Row < j && Col + TILE_SIZE < l)
+        P[Row * l + Col + TILE_SIZE] = PvalTwo;
+
 }
 
 __global__ void vecxvec_kernel(const float* __restrict__ d_m, const float* __restrict__ d_x, float * __restrict__ d_p,

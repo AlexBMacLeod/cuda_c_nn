@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <cuda.h>
 #include <string.h>
 
 #include "../include/tensor.h"
@@ -12,13 +13,79 @@ static void reallocateMem(Matrix *matrix, struct Shape shape)
 {
     //matrix->shape.x = x;
     //matrix->shape.y = y;
-    matrix->data = realloc(matrix->data, sizeof(float)*matrix->shape.x*matrix->shape.y);
+    matrix->cpuData = realloc(matrix->cpuData, sizeof(float)*matrix->shape.x*matrix->shape.y);
+}
+
+static void freeCpu(struct Matrix* matrix)
+{
+    if(matrix->cpuAllocation)
+    {
+        free(matrix->cpuData);
+        matrix->cpuData = NULL;
+        matrix->cpuAllocation = 0;
+    }
+}
+
+static void freeGpu(struct Matrix* matrix)
+{
+    if(matrix->gpuAllocation)
+    {
+        cudaFree(matrix->gpuData);
+        matrix->gpuData = NULL;
+        matrix->gpuAllocation = 0;
+    }
 }
 
 static void freeMatrix(Matrix *matrix)
 {
-    free(matrix->data);
+    matrix->freeCpu(matrix);
+    matrix->freeGpu(matrix);
     free(matrix);
+}
+
+static void copyMemToCpu(struct Matrix *matrix)
+{
+    if(matrix->gpuAllocation)
+    {
+        if(matrix->cpuAllocation)
+        {
+            int size = matrix->shape.x*matrix->shape.y*matrix->shape.z*sizeof(float);
+            cudaMemcpy(matrix->cpuData, matrix->gpuData, size, cudamemcpyDeviceToHost);
+        }else{
+            matrix->allocateCpu(matrix);
+            int size = matrix->shape.x*matrix->shape.y*matrix->shape.z*sizeof(float);
+            cudaMemcpy(matrix->cpuData, matrix->gpuData, size, cudamemcpyDeviceToHost);
+        }
+    }
+}
+
+static void allocateGpu(struct Matrix *matrix)
+{
+    if(!matrix->gpuAllocation)
+    {
+        int size = matrix->shape.x*matrix->shape.y*matrix->shape.z*sizeof(float);
+        cudaError_t err = cudaMalloc((void **) matrix->gpuData, size);
+
+        if (error != cudaSuccess) 
+        {
+            printf("%s in %s at line %d\n", cudaGetErrorString(err),__FILE__,__LINE__);
+            exit(EXIT_FAILURE);
+        }else{
+            matrix->gpuAllocation = 1;
+        }
+    }
+}
+
+static void allocateCpu(struct Matrix *matrix)
+{
+    if(!matrix->cpuAllocation)
+    {
+        int size = matrix->shape.x*matrix->shape.y*matrix->shape.z*sizeof(float);
+
+        matrix->cpuData = calloc(matrix->shape.n*matrix->shape.x*matrix->shape.y*matrix->shape.z, sizeof(float));
+
+        matrix->cpuAllocation = 1;
+    }
 }
 
 static void flatten(Matrix *matrix)
@@ -28,30 +95,55 @@ static void flatten(Matrix *matrix)
     matrix->shape.z = 1;
 }
 
-static void input(Matrix* matrix, float* inMatrix)
+static void inputCpuData(Matrix* matrix, float* inMatrix)
 {
-    memcpy( matrix->data, inMatrix, sizeof(float)*matrix->shape.x*matrix->shape.y);
+    int size = matrix->shape.x*matrix->shape.y*matrix->shape.z*sizeof(float);
+    if(gpuAllocation)
+        cudaMemcpy(matrix->gpuData, inMatrix, size, cudaMemcpyHostToDevice);
+    else{
+        matrix->allocateGpu(matrix);
+        cudaMemcpy(matrix->gpuData, inMatrix, size, cudaMemcpyHostToDevice);
+    }
+}
+
+static void inputGpuData(Matrix* matrix, float* inMatrix)
+{
+    int size = matrix->shape.x*matrix->shape.y*matrix->shape.z*sizeof(float);
+    if(gpuAllocation)
+        cudaMemcpy(matrix->gpuData, inMatrix, size, cudaMemcpyDeviceToDevice);
+    else{
+        matrix->allocateGpu(matrix);
+        cudaMemcpy(matrix->gpuData, inMatrix, size, cudaMemcpyDeviceToDevice);
+    }
 }
 
 static void zero(Matrix* matrix)
 {
     long data_size = matrix->shape.n*matrix->shape.x*matrix->shape.y*matrix->shape.z * sizeof(float);
-    memset(matrix->data, 0, data_size);
+    cudaMemset(matrix->gpuData, 0, data_size);
 }
 
 Matrix* createMatrix( int n, int x, int y, int z)
 {
     Matrix* matrix = (Matrix*)malloc(sizeof(Matrix));
+    matrix->cpuAllocation = 0;
+    matrix->gpuAllocation = 0;
+    matrix->cpuData = NULL;
+    matrix->gpuData = NULL;
     matrix->shape.n = n;
     matrix->shape.x = x;
     matrix->shape.y = y;
     matrix->shape.z = z;
-    matrix->giveMem = reallocateMem;
+    matrix->freeCpu = freeCpu;
+    matrix->freeGpu = freeGpu;
+    matrix->allocateCpu = allocateCpu;
+    matrix->allocateGpu = allocateGpu;
+    matrix->copyMemToCpu = copyMemToCpu;
     matrix->flatten = flatten;
     matrix->freeMem = freeMatrix;
     matrix->inputData = input;
     matrix->zero = zero;
-    matrix->data = calloc(matrix->shape.n*matrix->shape.x*matrix->shape.y*matrix->shape.z, sizeof(float));
+    matrix->allocateGpu(matrix);
     return matrix;
 }
 

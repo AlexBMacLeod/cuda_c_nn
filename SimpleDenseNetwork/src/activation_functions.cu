@@ -90,7 +90,8 @@ void relu_deriv( linearLayer*)
     cudaFree(d_Min);
 }
 
-__global__ void relu_kernel(float* __restrict__ d,
+__global__ void 
+relu_kernel(float* __restrict__ d,
                             const unsigned int nRows, const unsigned int nCols)
 {
     const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -103,7 +104,8 @@ __global__ void relu_kernel(float* __restrict__ d,
 }
 
 
-__global__ void relu_deriv_kernel(int* __restrict__ d_out, const int* __restrict__ d_in,
+__global__ void 
+relu_deriv_kernel(int* __restrict__ d_out, const int* __restrict__ d_in,
                                   const unsigned int nRows, const unsigned int nCols)
 {
     const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -117,7 +119,8 @@ __global__ void relu_deriv_kernel(int* __restrict__ d_out, const int* __restrict
         else d_out[nRows*Col+Row] = 0;
     }
 
-__global__ void tanh_kernel(float* __restrict__ d,
+__global__ void 
+tanh_kernel(float* __restrict__ d,
                             const unsigned int nRows, const unsigned int nCols)
 {
     const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -126,12 +129,35 @@ __global__ void tanh_kernel(float* __restrict__ d,
         d[nRows*Col+Row] = tanhf(d[nRows*Col+Row]);
 }
 
-__global__ void tanh_deriv_kernel(float* __restrict__ output, float* __restrict__ deriv,
+__global__ void 
+tanh_deriv_kernel(float* __restrict__ output, float* __restrict__ deriv,
                             const unsigned int nRows, const unsigned int nCols)
 
     {
         const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
         const unsigned int Row = blockIdx.y * blockDim.y + threadIdx.y;
         if (Col < nCols && Row < nRows)
-            deriv[nRows*Col+Row] = 1 - powf(input[nRows*Col+Row]);
+            deriv[nRows*Col+Row] = 1 - __powf(input[nRows*Col+Row]);
+    }
+
+
+__global__ void 
+softmax_kernel(float* __restrict__ d,
+                            const unsigned int nRows, const unsigned int nCols,
+                            const unsigned int batch_size)
+    {
+        const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
+        const unsigned int Row = blockIdx.y * blockDim.y + threadIdx.y;
+        int tx = threadIdx.x;
+        int ty = threadIdx.y;
+        __shared__ float sigma[batch_size];
+
+        if (Col < nCols && Row < nRows){
+            d[Row*batch_size + Col] = __exp(d[Row*batch_size + Col]);
+            sigma[ty] += d[Row*batch_size + Col];
+        
+            __syncthreads();
+
+            d[Row*batch_size + Col] = d[Row*batch_size + Col]/sigma[ty];
+        }
     }
