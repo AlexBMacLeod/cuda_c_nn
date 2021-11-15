@@ -64,15 +64,8 @@ static void allocateGpu(struct Matrix *matrix)
     if(!matrix->gpuAllocation)
     {
         int size = matrix->shape.x*matrix->shape.y*matrix->shape.z*sizeof(float);
-        cudaError_t err = cudaMalloc((void **) matrix->gpuData, size);
-
-        if (error != cudaSuccess) 
-        {
-            printf("%s in %s at line %d\n", cudaGetErrorString(err),__FILE__,__LINE__);
-            exit(EXIT_FAILURE);
-        }else{
-            matrix->gpuAllocation = 1;
-        }
+        CHECK_ERROR(cudaMalloc((void **) matrix->gpuData, size));
+        matrix->gpuAllocation = 1;
     }
 }
 
