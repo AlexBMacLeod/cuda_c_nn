@@ -118,7 +118,7 @@ relu_deriv_kernel(int* __restrict__ d_out, const int* __restrict__ d_in,
         }
         else d_out[nRows*Col+Row] = 0;
     }
-
+}
 __global__ void 
 tanh_kernel(float* __restrict__ d,
                             const unsigned int nRows, const unsigned int nCols)
