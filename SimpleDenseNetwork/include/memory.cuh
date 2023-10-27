@@ -19,12 +19,14 @@ void free_device(Matrix*);
 
 void free_host(Matrix*);
 
-void inputCpuData(Matrix*, float*);
+void input_data_h(Matrix*, float*);
 
-void inputGpuData(Matrix*, float*);
+void input_data_d(Matrix*, float*);
 
-void allocateCpu(Matrix*);
+void allocate_h(Matrix*);
 
-void allocateGpu(Matrix*);
+void allocate_d(Matrix*);
+
+void zero(Matrix*);
 
 #endif //MEMORY_CUH

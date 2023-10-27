@@ -14,11 +14,11 @@ typedef struct Matrix{
     void (*free_device)(struct Matrix*);
     void (*free_host)(struct Matrix*);
     void (*flatten)(struct Matrix*);
-    void (*input_cpu_data)( struct Matrix*, float*, int);
-    void (*input_gpu_data)( struct Matrix*, float*, int);
-    void (*allocate_cpu)( struct Matrix*, struct Shape);
-    void (*allocate_gpu)( struct Matrix*, struct Shape);
-    void (*freeMem)( struct Matrix*);
+    void (*input_data_h)( struct Matrix*, float*, int);
+    void (*input_data_d)( struct Matrix*, float*, int);
+    void (*allocate_h)( struct Matrix*, struct Shape);
+    void (*allocate_d)( struct Matrix*, struct Shape);
+    void (*free_matrix)( struct Matrix*);
     void (*zero)( struct Matrix*);
 }Matrix;
 

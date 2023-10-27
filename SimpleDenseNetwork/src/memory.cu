@@ -40,7 +40,7 @@ void free_host(Matrix* matrix)
     }
 }
 
-void input_cpu_data(Matrix* matrix, float* input, int n)
+void input_data_h(Matrix* matrix, float* input, int n)
 {
     if(matrix->memory_h==NULL){
         matrix->memory_h = (float *)(calloc(n, sizeof(float)));
@@ -50,7 +50,7 @@ void input_cpu_data(Matrix* matrix, float* input, int n)
     memccpy(matrix->memory_h, input, n, sizeof(float));
 }
 
-void input_gpu_data(Matrix* matrix, float* input, int n)
+void input_data_d(Matrix* matrix, float* input, int n)
 {
 
     int size = n * sizeof(float);
@@ -62,7 +62,7 @@ void input_gpu_data(Matrix* matrix, float* input, int n)
     CHECK_ERROR(cudaMemcpy(matrix->memory_h, matrix->memory_d, size, cudaMemcpyDeviceToHost));
 }
 
-void allocate_cpu(Matrix* matrix)
+void allocate_h(Matrix* matrix)
 {
     if(matrix->memory_h==NULL){
         matrix->memory_h = (float *)calloc(matrix->n, sizeof(float));
@@ -72,7 +72,7 @@ void allocate_cpu(Matrix* matrix)
     }
 }
 
-void allocate_gpu(Matrix* matrix)
+void allocate_d(Matrix* matrix)
 {
     int size = matrix->n * sizeof(float);
     if(matrix->memory_d==NULL){
@@ -80,5 +80,13 @@ void allocate_gpu(Matrix* matrix)
     }else{
         printf("Trying to allocate memory to non-NULL GPU ptr.");
         exit(EXIT_FAILURE);
+    }
+}
+
+void zero(Matrix* matrix)
+{
+    int data_size = matrix->shape.n*matrix->shape.x*matrix->shape.y*matrix->shape.z * sizeof(float);
+    if(matrix->memory_d!=NULL){
+    cudaMemset(matrix->memory_d, 0, data_size);
     }
 }
