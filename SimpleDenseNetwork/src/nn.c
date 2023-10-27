@@ -5,9 +5,9 @@
 #include <string.h>
 
 
-#include "../include/nn.h"
-#include "../include/common.h"
-#include "../include/shape.h"
+#include "nn.h"
+#include "common.h"
+#include "shape.h"
 
 struct Node* head; // global variable - pointer to head node.
 

@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "linear.h"
-#include "../include/nnKernel.cuh"
+#include "nnKernel.cuh"
 
 #define TILE_SIZE 32
 
@@ -17,7 +17,7 @@
 }
 
 __global__
-void matrixMult(const float * __restrict__ M, const float __restrict__ *N, float *P, int j, int k, int l)
+void matrixMult(const float * __restrict__ M, const float * __restrict__ N, float *P, int j, int k, int l)
 {
     __shared__ float Mds[TILE_SIZE][TILE_SIZE];
     __shared__ float NdsOne[TILE_SIZE][TILE_SIZE];
@@ -47,9 +47,9 @@ void matrixMult(const float * __restrict__ M, const float __restrict__ *N, float
         if(Row < j && (ph * TILE_SIZE + ty) < k)
             Mds[ty][tx] = M[row*k + TILE_SIZE * ph + tx];
         if(Col < l && (ph * bx + tx) < k)
-            NdsOne[ty][tx] = N[(ty + ph * TILE_SIZE) * l) + Col];
+            NdsOne[ty][tx] = N[(ty + ph * TILE_SIZE) * l + Col];
         if(Col + 1 < l && (ph * TILE_SIZE + tx) < k)
-            NdsTwo[ty][tx] = N[(ty + ph * TILE_SIZE) * l) + Col + TILE_WIDTH];
+            NdsTwo[ty][tx] = N[(ty + ph * TILE_SIZE) * l + Col + TILE_WIDTH];
 
 
         __syncthreads();

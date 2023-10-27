@@ -36,12 +36,12 @@ void relu(LinearLayer* layer)
     dim3 dimBlock(32.0, 32.0, 1);
 
 
-    relu_kernel<<<dimGrid, dimBlock>>>(layer->output->data, layer->out, layer->batch_size);
+    relu_kernel<<<dimGrid, dimBlock>>>(layer->output->gpuData, layer->out, layer->batch_size);
 
 }
 
 
-void relu_func( linearLayer* layer)
+void relu_func( LinearLayer* layer)
 {
     float *d_Mout;
     float *d_Min;
@@ -83,15 +83,15 @@ void relu_deriv( linearLayer*)
     dim3 dimBlock(32.0, 1, 1);
 
 
-    relu_kernel<<<dimGrid, dimBlock>>>(d_Mout, d_Min, layer->out);
+    relu_deriv_kernel<<<dimGrid, dimBlock>>>(d_Mout, d_Min, layer->out);
 
     cudaMemcpy(d_Mout, layer->output, size, cudaMemcpyDeviceToHost);
     cudaFree(d_Mout);
     cudaFree(d_Min);
 }
 
-__global__ void 
-relu_kernel(float* __restrict__ d,
+__global__ 
+void relu_kernel(float* __restrict__ d,
                             const unsigned int nRows, const unsigned int nCols)
 {
     const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;

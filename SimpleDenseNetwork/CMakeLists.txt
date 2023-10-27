@@ -1,45 +1,30 @@
-    cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
-    project(LINEAR)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+project(LINEAR LANGUAGES C CXX CUDA)
 
+# Set CUDA Flags (adjust the compute capability as needed)
+set(CMAKE_CUDA_FLAGS "-arch=sm_30 ${CMAKE_CUDA_FLAGS}")
 
-    set(LINEAR_LANGUAGE "C" CACHE STRING "Selected language {C,CUDA}")
+# Include directories
+include_directories(
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+)
 
+# Grab all the source and header files
+file(GLOB headers "${PROJECT_SOURCE_DIR}/include/*.h" "${PROJECT_SOURCE_DIR}/include/*.cuh")
+file(GLOB sources "${PROJECT_SOURCE_DIR}/src/*.c" "${PROJECT_SOURCE_DIR}/src/*.cu")
 
-    if(${LINEAR_LANGUAGE} STREQUAL "C")
-    elseif(${LINEAR_LANGUAGE} STREQUAL "CUDA")
+# Create the library
+add_library(nn STATIC ${headers} ${sources})
 
-        enable_language(CUDA)
+# Set language standards
+target_compile_features(nn PUBLIC c_std_11 cuda_std_11)
 
-        set(CMAKE_CUDA_FLAGS "-arch compute_30 ${CMAKE_CUDA_FLAGS}")
-    else()
-        message(FATAL_ERROR "${LINEAR_LANGUAGE} is not a supported language.")
-    endif()
+# Enable separable compilation for CUDA
+set_target_properties(nn PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-    include_directories(
-            ${PROJECT_SOURCE_DIR}/include
-            ${PROJECT_SOURCE_DIR}/src
-    )
-
-    file(GLOB nn_source
-            "${PROJECT_SOURCE_DIR}/include/*.h"
-                "${PROJECT_SOURCE_DIR}/include/*.cuh"
-            "${PROJECT_SOURCE_DIR}/src/*.cu"
-                "${PROJECT_SOURCE_DIR}/src/*.c"
-            )
-
-    set_source_files_properties(${nn_source} PROPERTIES LANGUAGE ${LINEAR_LANGUAGE})
-
-    add_library(nn STATIC ${nn_source} src/nn.c include/nn.h src/Linear.c include/Linear.h src/activation_functions.cu include/activation_functions.cuh)
-
-    target_compile_features(nn PUBLIC c_std_11)
-
-
-    set_target_properties( nn
-            PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-
-
-    function(nn_executable target source_files)
-        add_executable(${target} ${source_files})
-        set_source_files_properties(${source_files} PROPERTIES LANGUAGE ${LINEAR_LANGUAGE})
-        target_link_libraries(${target} nn)
-    endfunction()
+# Function to create an executable linking to the 'nn' library
+function(nn_executable target source_files)
+    add_executable(${target} ${source_files})
+    target_link_libraries(${target} nn)
+endfunction()
