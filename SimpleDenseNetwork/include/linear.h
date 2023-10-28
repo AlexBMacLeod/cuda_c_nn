@@ -5,7 +5,7 @@
 #ifndef _LINEAR_H
 #define _LINEAR_H
 
-#include "tensor.h"
+#include "matrix.h"
 #include "shape.h"
 //#include "activation_functions.h"
 

@@ -3,12 +3,18 @@
 #include <stdbool.h>
 
 #include "linear.h"
-#include "input.h"
+#include "shape.h"
+
+typedef enum {
+    LAYER_LINEAR,
+    LAYER_CONV2D,
+    LAYER_INPUT
+} LayerType;
 
 struct Node  {
 	struct Node* next;
 	struct Node* prev;
-	char layerType[20];
+	LayerType layer_type;
 	union{
     	LinearLayer *layer;
 		inputLayer *input;

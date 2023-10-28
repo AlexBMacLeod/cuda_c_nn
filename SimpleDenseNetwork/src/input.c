@@ -6,7 +6,7 @@
 
 void freeInput(inputLayer* layer)
 {
-    layer->output->freeMem(layer->output);
+    layer->output->free_matrix(layer->output);
     free(layer);
 }
 

@@ -1,7 +1,7 @@
 #ifndef _INPUT_H_
 #define _INPUT_H_
 
-#include "tensor.h"
+#include "matrix.h"
 #include "shape.h"
 
 /*
