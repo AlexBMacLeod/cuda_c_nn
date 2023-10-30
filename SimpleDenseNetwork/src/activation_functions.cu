@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 
-#include "linear.h"
+#include "layer.h"
 #include "activation_functions.cuh"
 
 #define CHECK_ERROR(call) { \
@@ -19,75 +19,56 @@
 	} \
 }
 
-
-void none(LinearLayer* layer)
+void relu(layer* layer)
 {
-    return;
+    int dimX = ceil(layer->out / 32.0);
+    int dimY = ceil(layer->batch_size / 32.0);
+    dim3 dimGrid(ceil( layer->out / 32.0), 1, 1);
+    dim3 dimBlock(32.0, 1, 1);
+
+    relu_kernel<<<dimGrid, dimBlock>>>(layer->output->memory_d, layer->out, layer->batch_size);
+
 }
 
-void none2C(conv2DLayer* layer)
+
+void relu_deriv(layer *layer)
 {
-    return;
+    int dimX = ceil(layer->out / 32.0);
+    int dimY = ceil(layer->batch_size / 32.0);
+    dim3 dimGrid(ceil( layer->out / 32.0), 1, 1);
+    dim3 dimBlock(32.0, 1, 1);
+
+    relu_deriv_kernel<<<dimGrid, dimBlock>>>(layer->output->memory_d, layer->input->memory_d, layer->out);
 }
 
-void relu(LinearLayer* layer)
+void tanh(layer *layer)
 {
-    dim3 dimGrid(ceil( ceil( layer->out / 32.0), layer->batch_size / 32.0), 1);
+    int dimX = ceil(layer->out / 32.0);
+    int dimY = ceil(layer->batch_size / 32.0);
+    dim3 dimGrid(dimX, dimY, 1);
     dim3 dimBlock(32.0, 32.0, 1);
 
-
-    relu_kernel<<<dimGrid, dimBlock>>>(layer->output->gpuData, layer->out, layer->batch_size);
-
+    tanh_kernel<<<dimGrid, dimBlock>>>(layer->output->memory_d, layer->out, layer->batch_size);
 }
 
-
-void relu_func( LinearLayer* layer)
+void tanh_deriv(layer *layer)
 {
-    float *d_Mout;
-    float *d_Min;
-    int size = layer->out *sizeof(float);
+    int dimX = ceil(layer->out / 32.0);
+    int dimY = ceil(layer->batch_size / 32.0);
+    dim3 dimGrid(dimX, dimY, 1);
+    dim3 dimBlock(32.0, 32.0, 1);
 
-
-    CHECK_ERROR(cudaMalloc((void**)&d_Mout, size));
-    CHECK_ERROR(cudaMalloc((void**)&d_Min, size));
-
-
-    cudaMemcpy(d_Min, layer->output, size, cudaMemcpyHostToDevice);
-
-    dim3 dimGrid(ceil( layer->out / 32.0), 1, 1);
-    dim3 dimBlock(32.0, 1, 1);
-
-
-    relu_kernel<<<dimGrid, dimBlock>>>(d_Mout, d_Min, layer->out);
-
-    cudaMemcpy(d_Mout, layer->output, size, cudaMemcpyDeviceToHost);
-    cudaFree(d_Mout);
-    cudaFree(d_Min);
+    tanh_deriv_kernel<<<dimGrid, dimBlock>>>(layer->output->memory_d, layer->deriv->memory_d, layer->out, layer->batch_size);
 }
 
-
-void relu_deriv( linearLayer*)
+void softmax(layer *layer)
 {
-    float *d_Mout;
-    float *d_Min;
-    int size = layer->out *sizeof(float);
+    int dimX = ceil(layer->out / 32.0);
+    int dimY = ceil(layer->batch_size / 32.0);
+    dim3 dimGrid(dimX, dimY, 1);
+    dim3 dimBlock(32.0, 32.0, 1);
 
-
-    CHECK_ERROR(cudaMalloc((void**)&d_Mout, size));
-    CHECK_ERROR(cudaMalloc((void**)&d_Min, size));
-
-
-    cudaMemcpy(d_Min, layer->output, size, cudaMemcpyHostToDevice);
-
-    dim3 dimGrid(ceil( layer->out / 32.0), 1, 1);
-    dim3 dimBlock(32.0, 1, 1);
-
-
-    relu_deriv_kernel<<<dimGrid, dimBlock>>>(d_Mout, d_Min, layer->out);
-
-    cudaMemcpy(d_Mout, layer->output, size, cudaMemcpyDeviceToHost);
-    cudaFree(d_Mout);
-    cudaFree(d_Min);
+    softmax_kernel<<<dimGrid, dimBlock>>>(layer->output->memory_d, layer->out, layer->batch_size)
 }
 
 __global__ 
@@ -161,3 +142,4 @@ softmax_kernel(float* __restrict__ d,
             d[Row*batch_size + Col] = d[Row*batch_size + Col]/sigma[ty];
         }
     }
+

@@ -64,6 +64,7 @@ layer* create_layer(char activation[], LayerType type, struct Shape in, int stri
         layer->weights = createMatrix( in.y, 1, layer->out, 1);
         layer->output = createMatrix( layer->batch_size, 1, layer->out, 1);
         layer->delta = createMatrix( layer->batch_size, 1, in.y, 1);
+        
     }else if (type==LAYER_INPUT)
     {
         layer->act_func = NULL;
@@ -77,11 +78,11 @@ layer* create_layer(char activation[], LayerType type, struct Shape in, int stri
         layer->deriv = createMatrix( layer->batch_size, 1, layer->out, 1);
     }else if(strcmp(activation, "softmax")==0){
         layer->act_func = softmax;
-        layer->deriv_func = none;
+        layer->deriv_func = NULL;
     }else if(strcmp(activation, "tanh")==0){
-        layer->act_func = tanhAct;
-        layer->deriv_func = tanhAct_deriv;
-        layer->deriv = createMatrix( batch_size, 1, out, 1);
+        layer->act_func = tanh;
+        layer->deriv_func = tanh_deriv;
+        layer->deriv = createMatrix( layer->batch_size, 1, layer->out, 1);
     }else{
         layer->act_func = NULL;
         layer->deriv_func = NULL;
@@ -96,36 +97,4 @@ layer* create_layer(char activation[], LayerType type, struct Shape in, int stri
     return layer;
 }
 
-void delta(struct layer* layer, float* y)
-{
-    if(layer->nextWeights==NULL)
-    {   
-        if(layer->nextDelta==NULL) layer->nextDelta = createMatrix(layer->batch_size, 1 , layer->out, 1);
-        float b_size = layer->batch_size;
-        for(int i=0; i<layer->nextDelta->shape.n; i++)
-        {
-            for(int j=0; j<layer->nextDelta->shape.y; j++)
-            {
-                layer->nextDelta->data[i*layer->out+j] = (layer->output->data[i*layer->out+j] - y[i*layer->out+j])/b_size;
-            }
-        }
-    }
-    if(layer->deriv!=NULL) elemMatrixMultInPlace(layer->nextDelta, layer->deriv);
-    Matrix *invWeights = createInverse(layer->weights);
-    matrixMultiplication(layer->nextDelta, invWeights, layer->delta);
-    invWeights->free_matrix(invWeights);
-    //if(layer->derivFunc!=none){
-    //}
-}
 
-
-void backward(layer* layer)
-{
-    Matrix *invInput = createInverse(layer->input);
-    Matrix *weightsDelta = createMatrix(layer->in.y, 1, layer->out, 1);
-    matrixMultiplication(invInput, layer->nextDelta, weightsDelta);
-    matrixScalarMultiplicationInPlace(weightsDelta, layer->lr);
-    matrixSubtraction(layer->weights, weightsDelta);
-    weightsDelta->free_matrix(weightsDelta);
-    invInput->free_matrix(invInput);
-}

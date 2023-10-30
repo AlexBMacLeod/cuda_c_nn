@@ -5,6 +5,8 @@
 #ifndef LINEAR_ACTIVATION_FUNCTIONS_CUH
 #define LINEAR_ACTIVATION_FUNCTIONS_CUH
 
+#include "layer.h"
+
 typedef struct activation{
     void (*func)(struct linearLayer*);
     void (*deriv)(struct linearLayer*);
@@ -12,12 +14,15 @@ typedef struct activation{
 
 extern struct activation relu;
 
-void relu_func(struct linearLayer*);
-void relu_deriv(struct linearLayer*);
-void none(struct LinearLayer*)
+void relu(layer*);
 
+void relu_deriv(layer*);
 
-void none2C(struct conv2DLayer*)
+void tanh(layer*);
+
+void tanh_deriv(layer*);
+
+void softmax(layer*);
 
 
 
