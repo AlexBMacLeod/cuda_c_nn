@@ -11,13 +11,6 @@
 #include "layer.h"
 #include "activation_functions.cuh"
 
-#define CHECK_ERROR(call) { \
-	cudaError_t err = call; \
-	if (err != cudaSuccess) { \
-		printf("%s in %s at line %d\n", cudaGetErrorString(err), __FILE__, __LINE__); \
-		exit(err); \
-	} \
-}
 
 void relu(layer* layer)
 {
@@ -38,7 +31,7 @@ void relu_deriv(layer *layer)
     dim3 dimGrid(ceil( layer->out / 32.0), 1, 1);
     dim3 dimBlock(32.0, 1, 1);
 
-    relu_deriv_kernel<<<dimGrid, dimBlock>>>(layer->output->memory_d, layer->input->memory_d, layer->out);
+    relu_deriv_kernel<<<dimGrid, dimBlock>>>(layer->deriv->memory_d, layer->output->memory_d, layer->out, layer->batch_size);
 }
 
 void tanh(layer *layer)
@@ -68,7 +61,7 @@ void softmax(layer *layer)
     dim3 dimGrid(dimX, dimY, 1);
     dim3 dimBlock(32.0, 32.0, 1);
 
-    softmax_kernel<<<dimGrid, dimBlock>>>(layer->output->memory_d, layer->out, layer->batch_size)
+    softmax_kernel<<<dimGrid, dimBlock>>>(layer->output->memory_d, layer->out, layer->batch_size);
 }
 
 __global__ 
@@ -86,7 +79,7 @@ void relu_kernel(float* __restrict__ d,
 
 
 __global__ void 
-relu_deriv_kernel(int* __restrict__ d_out, const int* __restrict__ d_in,
+relu_deriv_kernel(float* __restrict__ d_out, const float* __restrict__ d_in,
                                   const unsigned int nRows, const unsigned int nCols)
 {
     const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -95,9 +88,9 @@ relu_deriv_kernel(int* __restrict__ d_out, const int* __restrict__ d_in,
     if (Col < nCols && Row < nRows)
     {
         if(d_in[nRows*Col+Row]>0){
-            d_out[nRows*Col+Row] = 1;
+            d_out[nRows*Col+Row] = 1.0f;
         }
-        else d_out[nRows*Col+Row] = 0;
+        else d_out[nRows*Col+Row] = 0.0f;
     }
 }
 __global__ void 
@@ -117,8 +110,10 @@ tanh_deriv_kernel(float* __restrict__ output, float* __restrict__ deriv,
     {
         const unsigned int Col = blockIdx.x * blockDim.x + threadIdx.x;
         const unsigned int Row = blockIdx.y * blockDim.y + threadIdx.y;
-        if (Col < nCols && Row < nRows)
-            deriv[nRows*Col+Row] = 1 - __powf(input[nRows*Col+Row]);
+        if (Col < nCols && Row < nRows){
+            float tanhValue = output[nRows*Col+Row];
+            deriv[nRows*Col+Row] = 1 - tanhValue * tanhValue;
+            }
     }
 
 
